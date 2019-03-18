@@ -32,3 +32,5 @@ tools:
           public: 'true'
           discoverable: 'false'
     memoryLimit: 1536M
+    command: ['/bin/sh']
+    args: ['-c', 'echo', 'hi']
