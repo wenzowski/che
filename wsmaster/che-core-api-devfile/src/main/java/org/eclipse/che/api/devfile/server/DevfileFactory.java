@@ -41,20 +41,23 @@ public class DevfileFactory {
    * @param devfile devfile where all maps (including nested objects) should be initialized
    */
   public static void initializeMaps(Devfile devfile) {
+    if (devfile.getAttributes() == null) {
+      devfile.setAttributes(new HashMap<>());
+    }
     devfile
         .getCommands()
         .stream()
         .filter(command -> command.getAttributes() == null)
         .forEach(command -> command.setAttributes(new HashMap<>()));
     devfile
-        .getTools()
+        .getComponents()
         .stream()
-        .filter(tool -> tool.getSelector() == null)
+        .filter(component -> component.getSelector() == null)
         .forEach(command -> command.setSelector(new HashMap<>()));
     devfile
-        .getTools()
+        .getComponents()
         .stream()
-        .flatMap(tool -> tool.getEndpoints().stream())
+        .flatMap(component -> component.getEndpoints().stream())
         .filter(endpoint -> endpoint.getAttributes() == null)
         .forEach(endpoint -> endpoint.setAttributes(new HashMap<>()));
   }

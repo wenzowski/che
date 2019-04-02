@@ -22,12 +22,12 @@ import static org.testng.Assert.assertSame;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.eclipse.che.api.devfile.model.Command;
+import org.eclipse.che.api.devfile.model.Component;
 import org.eclipse.che.api.devfile.model.Devfile;
 import org.eclipse.che.api.devfile.model.Project;
-import org.eclipse.che.api.devfile.model.Tool;
 import org.eclipse.che.api.devfile.server.FileContentProvider;
-import org.eclipse.che.api.devfile.server.convert.tool.ToolProvisioner;
-import org.eclipse.che.api.devfile.server.convert.tool.ToolToWorkspaceApplier;
+import org.eclipse.che.api.devfile.server.convert.component.ComponentProvisioner;
+import org.eclipse.che.api.devfile.server.convert.component.ComponentToWorkspaceApplier;
 import org.eclipse.che.api.devfile.server.exception.DevfileFormatException;
 import org.eclipse.che.api.devfile.server.exception.WorkspaceExportException;
 import org.eclipse.che.api.workspace.server.model.impl.CommandImpl;
@@ -43,11 +43,12 @@ import org.testng.annotations.Test;
 @Listeners(MockitoTestNGListener.class)
 public class DevfileConverterTest {
 
-  public static final String TOOL_TYPE = "toolType";
+  public static final String COMPONENT_TYPE = "componentType";
   @Mock private ProjectConverter projectConverter;
   @Mock private CommandConverter commandConverter;
-  @Mock private ToolProvisioner toolProvisioner;
-  @Mock private ToolToWorkspaceApplier toolToWorkspaceApplier;
+  @Mock private ComponentProvisioner componentProvisioner;
+  @Mock private ComponentToWorkspaceApplier componentToWorkspaceApplier;
+  @Mock private DefaultEditorProvisioner defaultEditorToolApplier;
 
   private DevfileConverter devfileConverter;
 
@@ -57,8 +58,9 @@ public class DevfileConverterTest {
         new DevfileConverter(
             projectConverter,
             commandConverter,
-            ImmutableSet.of(toolProvisioner),
-            ImmutableMap.of(TOOL_TYPE, toolToWorkspaceApplier));
+            ImmutableSet.of(componentProvisioner),
+            ImmutableMap.of(COMPONENT_TYPE, componentToWorkspaceApplier),
+            defaultEditorToolApplier);
   }
 
   @Test
@@ -125,7 +127,7 @@ public class DevfileConverterTest {
   }
 
   @Test
-  public void shouldConvertToolsDuringConvertingWorkspaceConfigToDevfile() throws Exception {
+  public void shouldConvertComponentsDuringConvertingWorkspaceConfigToDevfile() throws Exception {
     // given
     WorkspaceConfigImpl wsConfig = new WorkspaceConfigImpl();
 
@@ -133,7 +135,7 @@ public class DevfileConverterTest {
     Devfile devfile = devfileConverter.workspaceToDevFile(wsConfig);
 
     // then
-    verify(toolProvisioner).provision(devfile, wsConfig);
+    verify(componentProvisioner).provision(devfile, wsConfig);
   }
 
   @Test(
@@ -165,6 +167,20 @@ public class DevfileConverterTest {
 
     // then
     assertEquals(workspaceConfig.getName(), "petclinic");
+  }
+
+  @Test
+  public void shouldInvokeDefaultEditorProvisionerDuringConvertingDevfileToWorkrspaceConfig()
+      throws Exception {
+    // given
+    FileContentProvider fileContentProvider = mock(FileContentProvider.class);
+    Devfile devfile = newDevfile("petclinic");
+
+    // when
+    devfileConverter.devFileToWorkspaceConfig(devfile, fileContentProvider);
+
+    // then
+    verify(defaultEditorToolApplier).apply(devfile);
   }
 
   @Test
@@ -208,12 +224,12 @@ public class DevfileConverterTest {
   }
 
   @Test
-  public void shouldConvertToolsDuringConvertingDevfileToWorkspaceConfig() throws Exception {
+  public void shouldConvertComponentsDuringConvertingDevfileToWorkspaceConfig() throws Exception {
     // given
     Devfile devfile = newDevfile("petclinic");
-    Tool tool = new Tool();
-    tool.setType(TOOL_TYPE);
-    devfile.getTools().add(tool);
+    Component component = new Component();
+    component.setType(COMPONENT_TYPE);
+    devfile.getComponents().add(component);
 
     FileContentProvider fileContentProvider = mock(FileContentProvider.class);
 
@@ -222,7 +238,7 @@ public class DevfileConverterTest {
         devfileConverter.devFileToWorkspaceConfig(devfile, fileContentProvider);
 
     // then
-    verify(toolToWorkspaceApplier).apply(workspaceConfig, tool, fileContentProvider);
+    verify(componentToWorkspaceApplier).apply(workspaceConfig, component, fileContentProvider);
   }
 
   @Test(

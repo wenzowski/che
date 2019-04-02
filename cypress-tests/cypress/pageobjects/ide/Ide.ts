@@ -18,10 +18,11 @@ export class Ide {
 
     private static readonly START_WORKSPACE_TIMEOUT: number = Cypress.env("start_workspace_timeout");
     private static readonly LANGUAGE_SERVER_INITIALIZATION_TIMEOUT: number = Cypress.env("language_server_initialization_timeout");
+    private static readonly LOAD_PAGE_TIMEOUT: number = Cypress.env("load_page_timeout");
 
     private static readonly TOP_MENU_PANEL: string = "#theia-app-shell #theia-top-panel .p-MenuBar-content";
     private static readonly LEFT_CONTENT_PANEL: string = "#theia-left-content-panel";
-    public static readonly FILES_BUTTON: string = ".theia-app-left .p-TabBar-content li[title='Files']";
+    public static readonly EXPLORER_BUTTON: string = ".theia-app-left .p-TabBar-content li[title='Explorer']";
     private static readonly PRELOADER: string = ".theia-preload";
     private static readonly IDE_IFRAME: string = "iframe#ide-application-iframe";
 
@@ -30,42 +31,81 @@ export class Ide {
 
 
 
-    waitIdeInIframe(workspaceNamespace: string, workspaceName: string) {
-        this.testWorkspaceUtil.waitWorkspaceRunning(workspaceNamespace, workspaceName).then(() => {
-            [Ide.TOP_MENU_PANEL, Ide.LEFT_CONTENT_PANEL, Ide.FILES_BUTTON, Ide.PRELOADER]
-                .forEach(idePart => {
-                    cy.get(Ide.IDE_IFRAME, { timeout: Ide.START_WORKSPACE_TIMEOUT })
-                        .should(iframe => {
-                            expect(iframe.contents().find(idePart)).to.have.length(1)
-                            expect(iframe.contents().find(idePart)).to.be.visible
-                        })
-                })
-        });
+    waitNotification(notificationMessage: string) {
+        let notificationLocator: string = `div[id='notification-container-3-${notificationMessage}-|']`
+
+        cy.get(notificationLocator, { timeout: Ide.LOAD_PAGE_TIMEOUT })
+            .should('be.visible')
     }
 
-    waitIde(workspaceNamespace: string, workspaceName: string) {
-        this.testWorkspaceUtil.waitWorkspaceRunning(workspaceNamespace, workspaceName).then(() => {
-            [Ide.TOP_MENU_PANEL, Ide.LEFT_CONTENT_PANEL, Ide.FILES_BUTTON, Ide.PRELOADER]
-                .forEach(idePart => {
-                    cy.get(idePart, { timeout: Ide.START_WORKSPACE_TIMEOUT })
-                        .should('be.visible')
-                })
-        });
+    waitNotificationDisappearance(notificationMessage: string) {
+        let notificationLocator: string = `div[id='notification-container-3-${notificationMessage}-|']`
+
+        cy.get(notificationLocator, { timeout: Ide.LOAD_PAGE_TIMEOUT })
+            .should('not.be.visible')
+    }
+
+    waitWorkspaceAndIdeInIframe(workspaceNamespace: string, workspaceName: string) {
+        cy.log("**=> Ide.waitWorkspaceAndIdeInIframe**")
+            .then(() => {
+                cy.log("**Wait until workspace is started**")
+            })
+            .then(() => {
+                this.testWorkspaceUtil.waitWorkspaceRunning(workspaceNamespace, workspaceName)
+            })
+            .then(() => {
+                cy.log("**Wait until defined parts of IDE are visible**")
+            })
+            .then(() => {
+                [Ide.TOP_MENU_PANEL, Ide.LEFT_CONTENT_PANEL, Ide.EXPLORER_BUTTON]
+                    .forEach(idePartLocator => {
+                        cy.get(Ide.IDE_IFRAME, { timeout: Ide.LOAD_PAGE_TIMEOUT })
+                            .should(iframe => {
+                                expect(iframe.contents().find(idePartLocator)).to.have.length(1)
+                                expect(iframe.contents().find(idePartLocator)).to.be.visible
+                            })
+                    })
+            })
+    }
+
+    waitWorkspaceAndIde(workspaceNamespace: string, workspaceName: string) {
+        cy.log("**=> Ide.waitWorkspaceAndIde**")
+            .then(() => {
+                this.testWorkspaceUtil.waitWorkspaceRunning(workspaceNamespace, workspaceName)
+            })
+            .then(() => {
+                [Ide.TOP_MENU_PANEL, Ide.LEFT_CONTENT_PANEL, Ide.EXPLORER_BUTTON]
+                    .forEach(idePart => {
+                        cy.get(idePart, { timeout: Ide.LOAD_PAGE_TIMEOUT })
+                            .should('be.visible')
+                    })
+            });
+    }
+
+    waitIde() {
+        [Ide.TOP_MENU_PANEL, Ide.LEFT_CONTENT_PANEL, Ide.EXPLORER_BUTTON]
+            .forEach(idePart => {
+                cy.get(idePart, { timeout: Ide.LOAD_PAGE_TIMEOUT })
+                    .should('be.visible')
+            })
     }
 
     openIdeWithoutFrames(workspaceName: string) {
-        let workspaceUrl: string = `/che/${workspaceName}`
+        cy.log("**=> Ide.openIdeWithoutFrames**")
+            .then(() => {
+                let workspaceUrl: string = `/che/${workspaceName}`
 
-        cy.visit(workspaceUrl);
+                cy.visit(workspaceUrl);
+            })
     }
 
-    waitFilesButton() {
-        cy.get(Ide.FILES_BUTTON)
+    waitExplorerButton() {
+        cy.get(Ide.EXPLORER_BUTTON)
             .should('be.visible');
     }
 
-    clickOnFilesButton() {
-        cy.get(Ide.FILES_BUTTON)
+    clickOnExplorerButton() {
+        cy.get(Ide.EXPLORER_BUTTON)
             .first()
             .click();
     }

@@ -30,8 +30,7 @@
   },
   "required": [
     "specVersion",
-    "name",
-    "tools"
+    "name"
   ],
   "additionalProperties": false,
   "properties": {
@@ -92,16 +91,25 @@
                 "examples": [
                   "git@github.com:spring-projects/spring-petclinic.git"
                 ]
+              },
+              "refspec": {
+                "type": "string",
+                "description": "The name of the refspec to check out after the clone. This can be a branch, tag, commit id or anything the particular source type understands.",
+                "examples": [ "master", "feature-42", "304df5a" ]
               }
             }
+          },
+          "clonePath": {
+            "type": "string",
+            "description": "The path relative to the root of the projects to which this project should be cloned into. This is a unix-style relative path (i.e. uses forward slashes). The path is invalid if it is absolute or tries to escape the project root through the usage of '..'. If not specified, defaults to the project name."
           }
         }
       }
     },
-    "tools": {
+    "components": {
       "type": "array",
-      "title": "The Tools List",
-      "description" : "Description of the workspace tools, such as editor and plugins",
+      "title": "The Components List",
+      "description" : "Description of the workspace components, such as editor and plugins",
       "items": {
         "type": "object",
         "required": [
@@ -109,8 +117,8 @@
           "type"
         ],
         "dependencies": {
-          "localContent": [
-            "local"
+          "referenceContent": [
+            "reference"
           ]
         },
         "additionalProperties": false,
@@ -140,13 +148,13 @@
                 ]
               },
               "name": {},
-              "local": {},
-              "localContent": {},
+              "reference": {},
+              "referenceContent": {},
               "selector": {},
               "entrypoints": {}
             },
             "required": [
-              "local"
+              "reference"
             ],
             "additionalProperties": false
           },
@@ -176,14 +184,14 @@
         ],
         "properties": {
           "name": {
-            "description": "Describes the name of the tool. Should be unique per tool set.",
+            "description": "Describes the name of the component. Should be unique per components set.",
             "type": "string",
             "examples": [
               "mvn-stack"
             ]
           },
           "type": {
-            "description": "Describes type of the tool, e.g. whether it is an plugin or editor or other type",
+            "description": "Describes type of the component, e.g. whether it is an plugin or editor or other type",
             "type": "string",
             "examples": [
               "chePlugin",
@@ -195,20 +203,21 @@
           },
           "id": {
             "type": "string",
-            "description": "Describes the tool FQN",
+            "description": "Describes the component FQN",
+            "pattern": "^[a-zA-Z0-9_\\-\\./]{1,}:[a-zA-Z0-9_\\-\\.]{1,}$",
             "examples": [
               "eclipse/maven-jdk8:1.0.0"
             ]
           },
-          "local": {
-            "description": "Describes location of Kubernetes list yaml file. Applicable only for 'kubernetes' and 'openshift' type tools",
+          "reference": {
+            "description": "Describes absolute or devfile-relative location of Kubernetes list yaml file. Applicable only for 'kubernetes' and 'openshift' type components",
             "type": "string",
             "examples": [
               "petclinic-app.yaml"
             ]
           },
-          "localContent": {
-            "description": "Inlined content of a file specified in field 'local'",
+          "referenceContent": {
+            "description": "Inlined content of a file specified in field 'reference'",
             "type": "string",
             "examples": [
               "{\"kind\":\"List\",\"items\":[{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"name\":\"ws\"},\"spec\":{\"containers\":[{\"image\":\"eclipse/che-dev:nightly\"}]}}]}"
@@ -216,28 +225,28 @@
           },
           "selector": {
             "$ref": "#/definitions/selector",
-            "description": "Describes the objects selector for the recipe type tools. Allows to pick-up only selected items from k8s/openshift list",
+            "description": "Describes the objects selector for the recipe type components. Allows to pick-up only selected items from k8s/openshift list",
             "examples": [
               "{\n   \"app.kubernetes.io/name\" : \"mysql\", \n   \"app.kubernetes.io/component\" : \"database\", \n   \"app.kubernetes.io/part-of\" : \"petclinic\" \n}"
             ]
           },
           "image": {
             "type": "string",
-            "description": "Specifies the docker image that should be used for tool",
+            "description": "Specifies the docker image that should be used for component",
             "examples": [
               "eclipse/maven-jdk8:1.0.0"
             ]
           },
           "memoryLimit": {
             "type": "string",
-            "description": "Describes memory limit for the tool. You can express memory as a plain integer or as a fixed-point integer using one of these suffixes: E, P, T, G, M, K. You can also use the power-of-two equivalents: Ei, Pi, Ti, Gi, Mi, Ki",
+            "description": "Describes memory limit for the component. You can express memory as a plain integer or as a fixed-point integer using one of these suffixes: E, P, T, G, M, K. You can also use the power-of-two equivalents: Ei, Pi, Ti, Gi, Mi, Ki",
             "examples": [
               "128974848", "129e6", "129M", "123Mi"
             ]
           },
           "mountSources": {
             "type": "boolean",
-            "description": "Describes whether projects sources should be mount to the tool. `CHE_PROJECTS_ROOT` environment variable should contains a path where projects sources are mount",
+            "description": "Describes whether projects sources should be mount to the component. `CHE_PROJECTS_ROOT` environment variable should contains a path where projects sources are mount",
             "default": "false"
           },
           "command": {
@@ -246,7 +255,7 @@
               "type": "string"
             },
             "default": null,
-            "description": "The command to run in the dockerimage tool instead of the default one provided in the image. Defaults to null, meaning use whatever is defined in the image.",
+            "description": "The command to run in the dockerimage component instead of the default one provided in the image. Defaults to null, meaning use whatever is defined in the image.",
             "examples": [
               "['/bin/sh', '-c']"
             ]
@@ -257,17 +266,17 @@
               "type": "string"
             },
             "default": null,
-            "description": "The arguments to supply to the command running the dockerimage tool. The arguments are supplied either to the default command provided in the image or to the overridden command. Defaults to null, meaning use whatever is defined in the image.",
+            "description": "The arguments to supply to the command running the dockerimage component. The arguments are supplied either to the default command provided in the image or to the overridden command. Defaults to null, meaning use whatever is defined in the image.",
             "examples": [
               "['-R', '-f']"
             ]
           },
           "volumes": {
             "type": "array",
-            "description": "Describes volumes which should be mount to tool",
+            "description": "Describes volumes which should be mount to component",
             "items": {
               "type": "object",
-              "description": "Describe volume that should be mount to tool",
+              "description": "Describe volume that should be mount to component",
               "required": [
                 "name",
                 "containerPath"
@@ -276,7 +285,7 @@
                 "name": {
                   "type": "string",
                   "title": "The Volume Name",
-                  "description": "The volume name. If several tools mount the same volume then they will reuse the volume and will be able to access to the same files",
+                  "description": "The volume name. If several components mount the same volume then they will reuse the volume and will be able to access to the same files",
                   "examples": [
                     "my-data"
                   ]
@@ -317,10 +326,10 @@
           },
           "endpoints": {
             "type": "array",
-            "description": "Describes dockerimage tool endpoints",
+            "description": "Describes dockerimage component endpoints",
             "items": {
               "name": "object",
-              "description": "Describes dockerimage tool endpoint",
+              "description": "Describes dockerimage component endpoint",
               "required": [
                 "name",
                 "port"
@@ -388,7 +397,7 @@
                     "type": "string"
                   },
                   "default": null,
-                  "description": "The command to run in the tool instead of the default one provided in the image of the container. Defaults to null, meaning use whatever is defined in the image.",
+                  "description": "The command to run in the component instead of the default one provided in the image of the container. Defaults to null, meaning use whatever is defined in the image.",
                   "examples": [
                     "['/bin/sh', '-c']"
                   ]
@@ -399,7 +408,7 @@
                     "type": "string"
                   },
                   "default": null,
-                  "description": "The arguments to supply to the command running the tool. The arguments are supplied either to the default command provided in the image of the container or to the overridden command. Defaults to null, meaning use whatever is defined in the image.",
+                  "description": "The arguments to supply to the command running the component. The arguments are supplied either to the default command provided in the image of the container or to the overridden command. Defaults to null, meaning use whatever is defined in the image.",
                   "examples": [
                     "['-R', '-f']"
                   ]
@@ -442,7 +451,7 @@
               "type": "object",
               "required": [
                 "type",
-                "tool",
+                "component",
                 "command"
               ],
               "properties": {
@@ -453,9 +462,9 @@
                     "exec"
                   ]
                 },
-                "tool": {
+                "component": {
                   "type": "string",
-                  "description": "Describes tool to which given action relates",
+                  "description": "Describes component to which given action relates",
                   "examples": [
                     "mvn-stack"
                   ]
@@ -479,6 +488,18 @@
           }
         }
       }
+    },
+    "attributes" : {
+      "type": "object",
+      "editorFree": {
+        "type": "boolean",
+        "description": "Defines that no editor is needed and default one should not be provisioned.",
+        "default": "false"
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "javaType": "java.util.Map<String, String>"
     }
   }
 }
