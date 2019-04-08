@@ -28,9 +28,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
-import org.eclipse.che.api.devfile.model.Component;
-import org.eclipse.che.api.devfile.model.Devfile;
+import org.eclipse.che.api.core.model.workspace.devfile.Component;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.ComponentImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.DevfileImpl;
 import org.eclipse.che.commons.lang.NameGenerator;
+import org.eclipse.che.commons.lang.Pair;
 
 /**
  * Provision default editor if there is no any another editor and default plugins for it.
@@ -58,7 +60,7 @@ public class DefaultEditorProvisioner {
    *
    * @param devfile devfile where editor and plugins should be provisioned
    */
-  public void apply(Devfile devfile) {
+  public void apply(DevfileImpl devfile) {
     if (defaultEditorRef == null) {
       // there is no default editor configured
       return;
@@ -68,24 +70,24 @@ public class DefaultEditorProvisioner {
       return;
     }
 
-    List<Component> components = devfile.getComponents();
+    List<ComponentImpl> components = devfile.getComponents();
     Set<String> componentsNames =
         components.stream().map(Component::getName).collect(Collectors.toCollection(HashSet::new));
 
-    Optional<Component> editorOpt =
+    Optional<ComponentImpl> editorOpt =
         components.stream().filter(t -> EDITOR_COMPONENT_TYPE.equals(t.getType())).findFirst();
 
     boolean isDefaultEditorUsed;
     if (!editorOpt.isPresent()) {
       components.add(
-          new Component()
-              .withName(findAvailableName(componentsNames, defaultEditorRef))
-              .withType(EDITOR_COMPONENT_TYPE)
-              .withId(defaultEditorRef));
+          new ComponentImpl(
+              EDITOR_COMPONENT_TYPE,
+              findAvailableName(componentsNames, defaultEditorRef),
+              defaultEditorRef));
       isDefaultEditorUsed = true;
     } else {
       Component editor = editorOpt.get();
-      isDefaultEditorUsed = editor.getId().startsWith(defaultEditorId + ':');
+      isDefaultEditorUsed = defaultEditorId.equals(resolveIdAndVersion(editor.getId()).first);
     }
 
     if (isDefaultEditorUsed) {
@@ -93,7 +95,8 @@ public class DefaultEditorProvisioner {
     }
   }
 
-  private void provisionDefaultPlugins(List<Component> components, Set<String> componentsNames) {
+  private void provisionDefaultPlugins(
+      List<ComponentImpl> components, Set<String> componentsNames) {
     Map<String, String> missingPluginsIdToRef = new HashMap<>(defaultPluginsIdToRef);
 
     components
@@ -106,10 +109,10 @@ public class DefaultEditorProvisioner {
         .forEach(
             pluginRef ->
                 components.add(
-                    new Component()
-                        .withType(PLUGIN_COMPONENT_TYPE)
-                        .withId(pluginRef)
-                        .withName(findAvailableName(componentsNames, pluginRef))));
+                    new ComponentImpl(
+                        PLUGIN_COMPONENT_TYPE,
+                        findAvailableName(componentsNames, pluginRef),
+                        pluginRef)));
   }
 
   /**
@@ -127,6 +130,18 @@ public class DefaultEditorProvisioner {
   }
 
   private String getId(String reference) {
-    return reference.split(":", 2)[0];
+    return resolveIdAndVersion(reference).first;
+  }
+
+  private Pair<String, String> resolveIdAndVersion(String ref) {
+    int lastSlashPosition = ref.lastIndexOf("/");
+    String idVersion;
+    if (lastSlashPosition < 0) {
+      idVersion = ref;
+    } else {
+      idVersion = ref.substring(lastSlashPosition + 1);
+    }
+    String[] splitted = idVersion.split(":", 2);
+    return Pair.of(splitted[0], splitted[1]);
   }
 }

@@ -11,16 +11,21 @@
  */
 package org.eclipse.che.api.devfile.server.convert;
 
-import static org.eclipse.che.api.core.model.workspace.config.SourceStorage.REFSPEC_PARAMETER_NAME;
+import static java.lang.String.format;
+import static org.eclipse.che.api.core.model.workspace.config.SourceStorage.BRANCH_PARAMETER_NAME;
+import static org.eclipse.che.api.core.model.workspace.config.SourceStorage.COMMIT_ID_PARAMETER_NAME;
+import static org.eclipse.che.api.core.model.workspace.config.SourceStorage.START_POINT_PARAMETER_NAME;
+import static org.eclipse.che.api.core.model.workspace.config.SourceStorage.TAG_PARAMETER_NAME;
 
-import com.google.common.base.Strings;
 import java.net.URI;
 import java.net.URISyntaxException;
-import org.eclipse.che.api.devfile.model.Project;
-import org.eclipse.che.api.devfile.model.Source;
+import org.eclipse.che.api.core.model.workspace.devfile.Project;
+import org.eclipse.che.api.core.model.workspace.devfile.Source;
 import org.eclipse.che.api.devfile.server.exception.DevfileException;
 import org.eclipse.che.api.workspace.server.model.impl.ProjectConfigImpl;
 import org.eclipse.che.api.workspace.server.model.impl.SourceStorageImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.ProjectImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.SourceImpl;
 
 /**
  * Helps to convert {@link ProjectConfigImpl workspace project} to {@link Project devfile project}
@@ -36,13 +41,20 @@ public class ProjectConverter {
    * @param projectConfig source workspace project
    * @return created devfile project based on the specified workspace project
    */
-  public Project toDevfileProject(ProjectConfigImpl projectConfig) {
-    String refspec = projectConfig.getSource().getParameters().get(REFSPEC_PARAMETER_NAME);
-    Source source =
-        new Source()
-            .withType(projectConfig.getSource().getType())
-            .withLocation(projectConfig.getSource().getLocation())
-            .withRefspec(refspec);
+  public ProjectImpl toDevfileProject(ProjectConfigImpl projectConfig) {
+    String branch = projectConfig.getSource().getParameters().get(BRANCH_PARAMETER_NAME);
+    String startPoint = projectConfig.getSource().getParameters().get(START_POINT_PARAMETER_NAME);
+    String tag = projectConfig.getSource().getParameters().get(TAG_PARAMETER_NAME);
+    String commitId = projectConfig.getSource().getParameters().get(COMMIT_ID_PARAMETER_NAME);
+
+    SourceImpl source =
+        new SourceImpl(
+            projectConfig.getSource().getType(),
+            projectConfig.getSource().getLocation(),
+            branch,
+            startPoint,
+            tag,
+            commitId);
 
     String path = projectConfig.getPath();
     while (path != null && path.startsWith("/")) {
@@ -54,7 +66,7 @@ public class ProjectConverter {
       path = null;
     }
 
-    return new Project().withName(projectConfig.getName()).withSource(source).withClonePath(path);
+    return new ProjectImpl(projectConfig.getName(), source, path);
   }
 
   /**
@@ -79,16 +91,13 @@ public class ProjectConverter {
     return projectConfig;
   }
 
-  private SourceStorageImpl toSourceStorage(Source source) {
+  private SourceStorageImpl toSourceStorage(Source source) throws DevfileException {
     SourceStorageImpl sourceStorage = new SourceStorageImpl();
 
     sourceStorage.setType(source.getType());
     sourceStorage.setLocation(source.getLocation());
-    String refspec = source.getRefspec();
 
-    if (!Strings.isNullOrEmpty(refspec)) {
-      sourceStorage.getParameters().put(REFSPEC_PARAMETER_NAME, refspec);
-    }
+    updateSourceStorage(source, sourceStorage);
 
     return sourceStorage;
   }
@@ -145,6 +154,37 @@ public class ProjectConverter {
       return new URI(clonePath);
     } catch (URISyntaxException e) {
       throw new DevfileException("Failed to parse the clonePath.", e);
+    }
+  }
+
+  private void updateSourceStorage(Source devfileSource, SourceStorageImpl sourceStorage)
+      throws DevfileException {
+
+    String startPoint = devfileSource.getStartPoint();
+    String tag = devfileSource.getTag();
+    String commitId = devfileSource.getCommitId();
+
+    if ((startPoint != null && tag != null)
+        || (startPoint != null && commitId != null)
+        || (tag != null && commitId != null)) {
+
+      throw new DevfileException(
+          format(
+              "Only one of '%s', '%s', '%s' can be specified.",
+              START_POINT_PARAMETER_NAME, TAG_PARAMETER_NAME, COMMIT_ID_PARAMETER_NAME));
+    }
+
+    if (devfileSource.getBranch() != null) {
+      sourceStorage.getParameters().put(BRANCH_PARAMETER_NAME, devfileSource.getBranch());
+    }
+
+    // the order of importance is: startPoint > tag > commitId
+    if (startPoint != null) {
+      sourceStorage.getParameters().put(START_POINT_PARAMETER_NAME, startPoint);
+    } else if (tag != null) {
+      sourceStorage.getParameters().put(TAG_PARAMETER_NAME, tag);
+    } else if (commitId != null) {
+      sourceStorage.getParameters().put(COMMIT_ID_PARAMETER_NAME, commitId);
     }
   }
 }
