@@ -19,7 +19,8 @@ import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createPreferences;
 import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createProfile;
 import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createSshPair;
 import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createUser;
-import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createWorkspace;
+import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createWorkspaceWithConfig;
+import static org.eclipse.che.core.db.jpa.TestObjectsFactory.createWorkspaceWithDevfile;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -66,6 +67,7 @@ import org.eclipse.che.api.workspace.activity.WorkspaceActivityDao;
 import org.eclipse.che.api.workspace.activity.inject.WorkspaceActivityModule;
 import org.eclipse.che.api.workspace.server.DefaultWorkspaceLockService;
 import org.eclipse.che.api.workspace.server.DefaultWorkspaceStatusCache;
+import org.eclipse.che.api.workspace.server.DevfileToWorkspaceConfigConverter;
 import org.eclipse.che.api.workspace.server.WorkspaceManager;
 import org.eclipse.che.api.workspace.server.WorkspaceRuntimes;
 import org.eclipse.che.api.workspace.server.WorkspaceSharedPool;
@@ -82,6 +84,14 @@ import org.eclipse.che.api.workspace.server.model.impl.SourceStorageImpl;
 import org.eclipse.che.api.workspace.server.model.impl.VolumeImpl;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceConfigImpl;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.ActionImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.ComponentImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.DevfileImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.EndpointImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.EntrypointImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.EnvImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.ProjectImpl;
+import org.eclipse.che.api.workspace.server.model.impl.devfile.SourceImpl;
 import org.eclipse.che.api.workspace.server.model.impl.stack.StackImpl;
 import org.eclipse.che.api.workspace.server.spi.RuntimeInfrastructure;
 import org.eclipse.che.api.workspace.server.spi.WorkspaceDao;
@@ -185,6 +195,18 @@ public class CascadeRemovalTest {
                             RecipeImpl.class,
                             SshPairImpl.class,
                             VolumeImpl.class,
+                            ActionImpl.class,
+                            org.eclipse.che.api.workspace.server.model.impl.devfile.CommandImpl
+                                .class,
+                            ComponentImpl.class,
+                            DevfileImpl.class,
+                            EndpointImpl.class,
+                            EntrypointImpl.class,
+                            EnvImpl.class,
+                            ProjectImpl.class,
+                            SourceImpl.class,
+                            org.eclipse.che.api.workspace.server.model.impl.devfile.VolumeImpl
+                                .class,
                             KubernetesRuntimeState.class,
                             KubernetesRuntimeCommandImpl.class,
                             KubernetesMachineImpl.class,
@@ -218,6 +240,14 @@ public class CascadeRemovalTest {
                 install(new WorkspaceActivityModule());
                 install(new JpaKubernetesRuntimeCacheModule());
                 bind(WorkspaceManager.class);
+
+                // is not used in a scope of integration tests
+                // but instance is needed for setting WorkspaceManager up
+                bind(DevfileToWorkspaceConfigConverter.class)
+                    .toInstance(
+                        devfile -> {
+                          throw new UnsupportedOperationException("Operation is not implemented");
+                        });
 
                 RuntimeInfrastructure infra = mock(RuntimeInfrastructure.class);
                 doReturn(emptySet()).when(infra).getRecipeTypes();
@@ -345,8 +375,8 @@ public class CascadeRemovalTest {
 
     preferenceDao.setPreferences(user.getId(), preferences = createPreferences());
 
-    workspaceDao.create(workspace1 = createWorkspace("workspace1", account));
-    workspaceDao.create(workspace2 = createWorkspace("workspace2", account));
+    workspaceDao.create(workspace1 = createWorkspaceWithConfig("workspace1", account));
+    workspaceDao.create(workspace2 = createWorkspaceWithDevfile("workspace2", account));
 
     workspaceActivityDao.setCreatedTime(workspace1.getId(), System.currentTimeMillis());
     workspaceActivityDao.setCreatedTime(workspace2.getId(), System.currentTimeMillis());

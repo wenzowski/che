@@ -12,8 +12,12 @@
 package org.eclipse.che.api.devfile.server.convert;
 
 import static org.eclipse.che.api.devfile.server.Constants.CURRENT_SPEC_VERSION;
+import static org.eclipse.che.api.workspace.shared.Constants.PERSIST_VOLUMES_ATTRIBUTE;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -21,9 +25,15 @@ import static org.testng.Assert.assertSame;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.Map;
+import org.eclipse.che.api.core.ServerException;
+import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
 import org.eclipse.che.api.devfile.server.FileContentProvider;
+import org.eclipse.che.api.devfile.server.URLFetcher;
 import org.eclipse.che.api.devfile.server.convert.component.ComponentProvisioner;
 import org.eclipse.che.api.devfile.server.convert.component.ComponentToWorkspaceApplier;
+import org.eclipse.che.api.devfile.server.exception.DevfileException;
 import org.eclipse.che.api.devfile.server.exception.DevfileFormatException;
 import org.eclipse.che.api.devfile.server.exception.WorkspaceExportException;
 import org.eclipse.che.api.workspace.server.model.impl.EnvironmentImpl;
@@ -48,6 +58,7 @@ public class DevfileConverterTest {
   @Mock private ComponentProvisioner componentProvisioner;
   @Mock private ComponentToWorkspaceApplier componentToWorkspaceApplier;
   @Mock private DefaultEditorProvisioner defaultEditorToolApplier;
+  @Mock private URLFetcher urlFetcher;
 
   private DevfileConverter devfileConverter;
 
@@ -59,7 +70,8 @@ public class DevfileConverterTest {
             commandConverter,
             ImmutableSet.of(componentProvisioner),
             ImmutableMap.of(COMPONENT_TYPE, componentToWorkspaceApplier),
-            defaultEditorToolApplier);
+            defaultEditorToolApplier,
+            urlFetcher);
   }
 
   @Test
@@ -184,6 +196,27 @@ public class DevfileConverterTest {
   }
 
   @Test
+  public void
+      shouldProvisionDevfileAttributesAsConfigAttributesDuringConvertingDevfileToWorkspaceConfig()
+          throws Exception {
+    // given
+    FileContentProvider fileContentProvider = mock(FileContentProvider.class);
+    Map<String, String> devfileAttributes = new HashMap<>();
+    devfileAttributes.put(PERSIST_VOLUMES_ATTRIBUTE, "false");
+    devfileAttributes.put("anotherAttribute", "value");
+
+    DevfileImpl devfile = newDevfile("petclinic");
+    devfile.getAttributes().putAll(devfileAttributes);
+
+    // when
+    WorkspaceConfigImpl config =
+        devfileConverter.devFileToWorkspaceConfig(devfile, fileContentProvider);
+
+    // then
+    assertEquals(config.getAttributes(), devfileAttributes);
+  }
+
+  @Test
   public void shouldConvertCommandsDuringConvertingDevfileToWorkspaceConfig() throws Exception {
     // given
     FileContentProvider fileContentProvider = mock(FileContentProvider.class);
@@ -272,6 +305,31 @@ public class DevfileConverterTest {
 
     // when
     devfileConverter.devFileToWorkspaceConfig(devfile, fileContentProvider);
+  }
+
+  @Test
+  public void shouldConvertDevfileToWorkspaceConfig() throws Exception {
+    devfileConverter = spy(devfileConverter);
+    WorkspaceConfigImpl wsConfig = new WorkspaceConfigImpl();
+    wsConfig.setName("converted");
+    wsConfig.getAttributes().put("att", "value");
+    doReturn(wsConfig).when(devfileConverter).devFileToWorkspaceConfig(any(), any());
+
+    WorkspaceConfig converted = devfileConverter.convert(new DevfileImpl());
+
+    assertEquals(converted, wsConfig);
+  }
+
+  @Test(expectedExceptions = ServerException.class, expectedExceptionsMessageRegExp = "error")
+  public void
+      shouldThrowServerExceptionIfAnyDevfileExceptionOccursOnConvertingDevfileToWorkspaceConfig()
+          throws Exception {
+    devfileConverter = spy(devfileConverter);
+    doThrow(new DevfileException("error"))
+        .when(devfileConverter)
+        .devFileToWorkspaceConfig(any(), any());
+
+    devfileConverter.convert(new DevfileImpl());
   }
 
   private DevfileImpl newDevfile(String name) {

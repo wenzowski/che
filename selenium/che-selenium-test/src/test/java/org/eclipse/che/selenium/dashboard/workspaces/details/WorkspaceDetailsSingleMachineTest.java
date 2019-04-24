@@ -11,26 +11,19 @@
  */
 package org.eclipse.che.selenium.dashboard.workspaces.details;
 
-import static org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceDetails.WorkspaceDetailsTab.INSTALLERS;
 import static org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceDetails.WorkspaceDetailsTab.OVERVIEW;
 import static org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceDetails.WorkspaceDetailsTab.SERVERS;
 import static org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceDetails.WorkspaceDetailsTab.SSH;
 import static org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceDetails.WorkspaceDetailsTab.VOLUMES;
-import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import org.eclipse.che.selenium.core.client.TestWorkspaceServiceClient;
 import org.eclipse.che.selenium.core.user.DefaultTestUser;
-import org.eclipse.che.selenium.core.utils.WaitUtils;
 import org.eclipse.che.selenium.core.workspace.InjectTestWorkspace;
 import org.eclipse.che.selenium.core.workspace.TestWorkspace;
-import org.eclipse.che.selenium.pageobject.Loader;
 import org.eclipse.che.selenium.pageobject.dashboard.Dashboard;
 import org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceDetails;
-import org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceInstallers;
-import org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceMachines;
 import org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceOverview;
 import org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceServers;
 import org.eclipse.che.selenium.pageobject.dashboard.workspaces.WorkspaceSsh;
@@ -43,21 +36,6 @@ import org.testng.annotations.Test;
 
 /** @author Skoryk Serhii */
 public class WorkspaceDetailsSingleMachineTest {
-  private static final ImmutableMap<String, Boolean> EXPECTED_INSTALLERS =
-      ImmutableMap.<String, Boolean>builder()
-          .put("C# language server", false)
-          .put("Exec", true)
-          .put("File sync", false)
-          .put("Git credentials", false)
-          .put("JSON language server", false)
-          .put("PHP language server", false)
-          .put("Python language server", false)
-          .put("SSH", false)
-          .put("Terminal", true)
-          .put("TypeScript language server", false)
-          .put("Workspace API", true)
-          .put("Yaml language server", false)
-          .build();
 
   private String workspaceName;
 
@@ -65,14 +43,11 @@ public class WorkspaceDetailsSingleMachineTest {
   private TestWorkspace testWorkspace;
 
   @Inject private DefaultTestUser testUser;
-  @Inject private Loader loader;
   @Inject private Dashboard dashboard;
   @Inject private WorkspaceDetails workspaceDetails;
   @Inject private TestWorkspaceServiceClient workspaceServiceClient;
   @Inject private Workspaces workspaces;
-  @Inject private WorkspaceMachines workspaceMachines;
   @Inject private WorkspaceServers workspaceServers;
-  @Inject private WorkspaceInstallers workspaceInstallers;
   @Inject private WorkspaceOverview workspaceOverview;
   @Inject private WorkspaceSsh workspaceSsh;
   @Inject private WorkspacesVolumes workspacesVolumes;
@@ -104,40 +79,6 @@ public class WorkspaceDetailsSingleMachineTest {
     workspaceOverview.waitClipboardWorkspaceJsonFileBtn();
     workspaceOverview.waitDownloadWorkspaceJsonFileBtn();
     workspaceOverview.clickOnHideWorkspaceJsonFileBtn();
-  }
-
-  @Test
-  public void checkWorkingWithInstallers() {
-    workspaceDetails.selectTabInWorkspaceMenu(INSTALLERS);
-
-    // check all needed installers in dev-machine exist
-    workspaceMachines.selectMachine("Workspace Installers", "dev-machine");
-    EXPECTED_INSTALLERS.forEach(
-        (name, value) -> {
-          workspaceInstallers.checkInstallerExists(name);
-        });
-
-    // switch all installers and save changes
-    EXPECTED_INSTALLERS.forEach(
-        (name, value) -> {
-          assertEquals(workspaceInstallers.isInstallerStateTurnedOn(name), value);
-          workspaceInstallers.switchInstallerState(name);
-          WaitUtils.sleepQuietly(1);
-        });
-    clickOnSaveButton();
-
-    // switch all installers, save changes and check its states are as previous(by default for the
-    // Java stack)
-    EXPECTED_INSTALLERS.forEach(
-        (name, value) -> {
-          workspaceInstallers.switchInstallerState(name);
-          loader.waitOnClosed();
-        });
-    clickOnSaveButton();
-    EXPECTED_INSTALLERS.forEach(
-        (name, value) -> {
-          assertEquals(workspaceInstallers.isInstallerStateTurnedOn(name), value);
-        });
   }
 
   @Test

@@ -14,6 +14,7 @@ package org.eclipse.che.api.devfile.server.convert;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toCollection;
+import static org.eclipse.che.api.devfile.server.Components.getIdentifiableComponentName;
 import static org.eclipse.che.api.devfile.server.Constants.CURRENT_SPEC_VERSION;
 
 import com.google.common.base.Strings;
@@ -21,16 +22,21 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
+import org.eclipse.che.api.core.ServerException;
+import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
 import org.eclipse.che.api.core.model.workspace.devfile.Command;
 import org.eclipse.che.api.core.model.workspace.devfile.Component;
 import org.eclipse.che.api.core.model.workspace.devfile.Devfile;
 import org.eclipse.che.api.devfile.server.DevfileRecipeFormatException;
 import org.eclipse.che.api.devfile.server.FileContentProvider;
+import org.eclipse.che.api.devfile.server.URLFetcher;
+import org.eclipse.che.api.devfile.server.URLFileContentProvider;
 import org.eclipse.che.api.devfile.server.convert.component.ComponentProvisioner;
 import org.eclipse.che.api.devfile.server.convert.component.ComponentToWorkspaceApplier;
 import org.eclipse.che.api.devfile.server.exception.DevfileException;
 import org.eclipse.che.api.devfile.server.exception.DevfileFormatException;
 import org.eclipse.che.api.devfile.server.exception.WorkspaceExportException;
+import org.eclipse.che.api.workspace.server.DevfileToWorkspaceConfigConverter;
 import org.eclipse.che.api.workspace.server.model.impl.CommandImpl;
 import org.eclipse.che.api.workspace.server.model.impl.ProjectConfigImpl;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceConfigImpl;
@@ -43,13 +49,14 @@ import org.eclipse.che.api.workspace.server.model.impl.devfile.ProjectImpl;
  * @author Max Shaposhnyk
  * @author Sergii Leshchenko
  */
-public class DevfileConverter {
+public class DevfileConverter implements DevfileToWorkspaceConfigConverter {
 
   private final ProjectConverter projectConverter;
   private final CommandConverter commandConverter;
   private final Map<String, ComponentToWorkspaceApplier> componentTypeToApplier;
   private final Set<ComponentProvisioner> componentProvisioners;
   private final DefaultEditorProvisioner defaultEditorProvisioner;
+  private final URLFileContentProvider urlFileContentProvider;
 
   @Inject
   public DevfileConverter(
@@ -57,12 +64,14 @@ public class DevfileConverter {
       CommandConverter commandConverter,
       Set<ComponentProvisioner> componentProvisioners,
       Map<String, ComponentToWorkspaceApplier> componentTypeToApplier,
-      DefaultEditorProvisioner defaultEditorProvisioner) {
+      DefaultEditorProvisioner defaultEditorProvisioner,
+      URLFetcher urlFetcher) {
     this.projectConverter = projectConverter;
     this.commandConverter = commandConverter;
     this.componentProvisioners = componentProvisioners;
     this.componentTypeToApplier = componentTypeToApplier;
     this.defaultEditorProvisioner = defaultEditorProvisioner;
+    this.urlFileContentProvider = new URLFileContentProvider(null, urlFetcher);
   }
 
   /**
@@ -104,6 +113,15 @@ public class DevfileConverter {
     return devfile;
   }
 
+  @Override
+  public WorkspaceConfig convert(Devfile devfile) throws ServerException {
+    try {
+      return devFileToWorkspaceConfig(new DevfileImpl(devfile), urlFileContentProvider);
+    } catch (DevfileException e) {
+      throw new ServerException(e.getMessage(), e);
+    }
+  }
+
   /**
    * Converts given {@link Devfile} into {@link WorkspaceConfigImpl workspace config}.
    *
@@ -121,6 +139,9 @@ public class DevfileConverter {
       DevfileImpl devfile, FileContentProvider contentProvider) throws DevfileException {
     checkArgument(devfile != null, "Devfile must not be null");
     checkArgument(contentProvider != null, "Content provider must not be null");
+
+    // make copy to avoid modification of original devfile
+    devfile = new DevfileImpl(devfile);
 
     validateCurrentVersion(devfile);
 
@@ -142,7 +163,7 @@ public class DevfileConverter {
         throw new DevfileException(
             String.format(
                 "Devfile contains component `%s` with type `%s` that can not be converted to workspace",
-                component.getName(), component.getType()));
+                getIdentifiableComponentName(component), component.getType()));
       }
       applier.apply(config, component, contentProvider);
     }
@@ -151,6 +172,8 @@ public class DevfileConverter {
       ProjectConfigImpl projectConfig = projectConverter.toWorkspaceProject(project);
       config.getProjects().add(projectConfig);
     }
+
+    config.getAttributes().putAll(devfile.getAttributes());
 
     return config;
   }

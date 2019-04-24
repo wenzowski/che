@@ -55,7 +55,7 @@ public class DefaultFactoryParameterResolverTest {
           + "name: test\n"
           + "components:\n"
           + "- type: kubernetes\n"
-          + "  name: component\n"
+          + "  alias: component\n"
           + "  reference: ../localfile\n";
 
   @Mock private URLFetcher urlFetcher;
@@ -92,7 +92,8 @@ public class DefaultFactoryParameterResolverTest {
             new CommandConverter(),
             componentProvisioners,
             appliers,
-            new DefaultEditorProvisioner(null, new String[] {}));
+            new DefaultEditorProvisioner(null, new String[] {}),
+            new URLFetcher());
 
     WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
 
