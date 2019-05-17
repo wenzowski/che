@@ -79,6 +79,10 @@ export class ProjectTree {
         await this.driverHelper.waitDisappearance(By.css(ProjectTree.PROJECT_TREE_CONTAINER_CSS), attempts, polling)
     }
 
+    async waitItem(itemPath: string, timeout = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT) {
+        await this.driverHelper.waitVisibility(By.css(this.getItemCss(itemPath)), timeout);
+    }
+
     async waitItemDisappearance(itemPath: string, attempts = TestConstants.TS_SELENIUM_DEFAULT_ATTEMPTS, polling = TestConstants.TS_SELENIUM_DEFAULT_POLLING) {
         await this.driverHelper.waitDisappearance(By.css(this.getItemCss(itemPath)), attempts, polling)
     }

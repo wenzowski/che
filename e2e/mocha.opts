@@ -3,4 +3,4 @@
 --reporter 'driver/CheReporter.ts'
 -u tdd 
 --bail
---spec tests/*.spec.ts
+--spec tests/IDE.spec.ts

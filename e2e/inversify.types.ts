@@ -24,6 +24,8 @@ const CLASSES = {
     TestWorkspaceUtil: "TestWorkspaceUtil",
     ProjectTree: "ProjectTree",
     Editor: "Editor",
+    TopMenu: "TopMenu",
+    QuickOpenContainer: "QuickOpenContainer"
 }
 
 export { TYPES, CLASSES };

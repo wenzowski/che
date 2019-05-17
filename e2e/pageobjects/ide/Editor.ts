@@ -106,6 +106,22 @@ export class Editor {
         return editorText;
     }
 
+    async waitText(expectedText: string, timeout = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT, polling = TestConstants.TS_SELENIUM_DEFAULT_POLLING) {
+        await this.driverHelper.waitUntilTrue(async () => {
+            const editorText: string = await this.getEditorText();
+            const isEditorContainText: boolean = editorText.includes(expectedText);
+
+            console.log(editorText)
+
+            if (isEditorContainText) {
+                return true;
+            }
+
+            this.driverHelper.wait(polling)
+            return false;
+        }, timeout);
+    }
+
     async moveCursorToLineAndChar(line: number, char: number) {
         // set cursor to the 1:1 position
         await this.performKeyCombination(Key.chord(Key.CONTROL, Key.HOME));

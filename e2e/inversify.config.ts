@@ -23,6 +23,8 @@ import { Ide } from "./pageobjects/ide/Ide";
 import { TestWorkspaceUtil } from "./utils/workspace/TestWorkspaceUtil";
 import { ProjectTree } from "./pageobjects/ide/ProjectTree";
 import { Editor } from "./pageobjects/ide/Editor";
+import { TopMenu } from "./pageobjects/ide/TopMenu";
+import { QuickOpenContainer } from "./pageobjects/ide/QuickOpenContainer";
 
 const e2eContainer = new Container();
 
@@ -39,5 +41,7 @@ e2eContainer.bind<Ide>(CLASSES.Ide).to(Ide).inSingletonScope();
 e2eContainer.bind<TestWorkspaceUtil>(CLASSES.TestWorkspaceUtil).to(TestWorkspaceUtil).inSingletonScope();
 e2eContainer.bind<ProjectTree>(CLASSES.ProjectTree).to(ProjectTree).inSingletonScope();
 e2eContainer.bind<Editor>(CLASSES.Editor).to(Editor).inSingletonScope();
+e2eContainer.bind<TopMenu>(CLASSES.TopMenu).to(TopMenu).inSingletonScope();
+e2eContainer.bind<QuickOpenContainer>(CLASSES.QuickOpenContainer).to(QuickOpenContainer).inSingletonScope();
 
 export { e2eContainer }
