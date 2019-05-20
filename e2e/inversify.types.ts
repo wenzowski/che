@@ -25,7 +25,9 @@ const CLASSES = {
     ProjectTree: "ProjectTree",
     Editor: "Editor",
     TopMenu: "TopMenu",
-    QuickOpenContainer: "QuickOpenContainer"
+    QuickOpenContainer: "QuickOpenContainer",
+    PreviewWidget: "PreviewWidget",
+    GitHubPlugin: "GitHubPlugin"
 }
 
 export { TYPES, CLASSES };

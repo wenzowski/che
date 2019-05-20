@@ -338,4 +338,8 @@ export class DriverHelper {
         throw new Error(`Exceeded maximum mouse move attempts, for the '${elementLocator}' element`)
     }
 
+    getDriver(): ThenableWebDriver{
+        return this.driver;
+    }
+
 }

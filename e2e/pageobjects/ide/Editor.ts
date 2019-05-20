@@ -92,33 +92,44 @@ export class Editor {
 
     async getLineText(lineNumber: number): Promise<string> {
         const lineIndex: number = lineNumber - 1;
-        const editorText: string = await this.getEditorText();
+        const editorText: string = await this.getEditorVisibleText();
         const editorLines: string[] = editorText.split('\n');
         const editorLine = editorLines[lineIndex] + '\n';
 
         return editorLine;
     }
 
-    async getEditorText(): Promise<string> {
-        const interactionContainerLocator: By = By.css(Editor.EDITOR_INTERACTION_СSS);
-
-        const editorText: string = await this.driverHelper.waitAndGetValue(interactionContainerLocator)
+    async getEditorVisibleText(): Promise<string> {
+        const editorBodyLocator: By = By.xpath('//div[@class=\'view-lines\']');
+        const editorText: string = await this.driverHelper.waitAndGetText(editorBodyLocator);
         return editorText;
     }
 
     async waitText(expectedText: string, timeout = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT, polling = TestConstants.TS_SELENIUM_DEFAULT_POLLING) {
-        await this.driverHelper.waitUntilTrue(async () => {
-            const editorText: string = await this.getEditorText();
+        await this.driverHelper.getDriver().wait(async () => {
+            const editorText: string = await this.getEditorVisibleText();
             const isEditorContainText: boolean = editorText.includes(expectedText);
-
-            console.log(editorText)
 
             if (isEditorContainText) {
                 return true;
             }
 
-            this.driverHelper.wait(polling)
-            return false;
+            this.driverHelper.wait(polling);
+        }, timeout);
+    }
+
+    async waitSuccessBuildText(timeout = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT, polling = TestConstants.TS_SELENIUM_DEFAULT_POLLING) {
+        await this.driverHelper.getDriver().wait(async () => {
+            await this.performKeyCombination(Key.chord(Key.CONTROL, Key.END));
+            const editorText: string = await this.getEditorVisibleText();
+
+            const isEditorContainText: boolean = editorText.includes('[INFO] BUILD SUCCESS');
+
+            if (isEditorContainText) {
+                return true;
+            }
+
+            this.driverHelper.wait(polling);
         }, timeout);
     }
 

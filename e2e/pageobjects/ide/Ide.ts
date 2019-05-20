@@ -24,25 +24,46 @@ export class Ide {
     private static readonly PRELOADER_CSS: string = ".theia-preload";
     private static readonly IDE_IFRAME_CSS: string = "iframe#ide-application-iframe";
     public static readonly ACTIVATED_IDE_IFRAME_CSS: string = "#ide-iframe-window[aria-hidden='false']"
+    public static readonly GIT_BUTTON_XPATH: string = "(//ul[@class='p-TabBar-content']//li[@title='Git'])[1]";
+    public static readonly SELECTED_GIT_BUTTON_XPATH: string = "(//ul[@class='p-TabBar-content']//li[@title='Git' and contains(@class, 'p-mod-current')])[1]";
 
     constructor(
         @inject(CLASSES.DriverHelper) private readonly driverHelper: DriverHelper,
         @inject(CLASSES.TestWorkspaceUtil) private readonly testWorkspaceUtil: TestWorkspaceUtil) { }
 
+    async waitGitButton() {
+        const gitButtonLocator: By = By.xpath(Ide.GIT_BUTTON_XPATH);
+
+        await this.driverHelper.waitVisibility(gitButtonLocator);
+    }
+
+    async clickOnGitButton() {
+        const gitButtonLocator: By = By.xpath(Ide.GIT_BUTTON_XPATH);
+
+        await this.driverHelper.waitAndClick(gitButtonLocator);
+    }
+
     async waitAndSwitchToIdeFrame(timeout = TestConstants.TS_SELENIUM_LOAD_PAGE_TIMEOUT) {
         await this.driverHelper.waitAndSwitchToFrame(By.css(Ide.IDE_IFRAME_CSS), timeout)
     }
 
-    async waitNotification(notificationMessage: string, timeout = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT) {
-        const notificationLocator: By = By.css(`div[id='notification-container-3-${notificationMessage}-|']`)
+    async waitNotification(notificationText: string, timeout = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT) {
+        const notificationLocator: By = By.xpath(this.getNotificationXpathLocator(notificationText));
 
-        await this.driverHelper.waitVisibility(notificationLocator, timeout)
+        await this.driverHelper.waitVisibility(notificationLocator, timeout);
     }
 
-    async waitNotificationDisappearance(notificationMessage: string, attempts = TestConstants.TS_SELENIUM_DEFAULT_ATTEMPTS, polling = TestConstants.TS_SELENIUM_DEFAULT_POLLING) {
-        const notificationLocator: By = By.css(`div[id='notification-container-3-${notificationMessage}-|']`)
+    async waitNotificationDisappearance(notificationText: string, attempts = TestConstants.TS_SELENIUM_DEFAULT_ATTEMPTS, polling = TestConstants.TS_SELENIUM_DEFAULT_POLLING) {
+        const notificationLocator: By = By.xpath(this.getNotificationXpathLocator(notificationText));
 
-        await this.driverHelper.waitDisappearance(notificationLocator, attempts, polling)
+        await this.driverHelper.waitDisappearance(notificationLocator, attempts, polling);
+    }
+
+    async clickOnNotificationButton(notificationText: string, buttonText: string) {
+        const notificationLocator: string = this.getNotificationXpathLocator(notificationText);
+        const yesButtonLocator: string = notificationLocator + `//button[text()=\'${buttonText}\']`;
+
+        await this.driverHelper.waitAndClick(By.xpath(yesButtonLocator));
     }
 
     async waitWorkspaceAndIde(workspaceNamespace: string, workspaceName: string, timeout = TestConstants.TS_SELENIUM_LOAD_PAGE_TIMEOUT) {
@@ -104,6 +125,10 @@ export class Ide {
 
     async waitIdeFrameAndSwitchOnIt(timeout = TestConstants.TS_SELENIUM_LOAD_PAGE_TIMEOUT) {
         await this.driverHelper.waitAndSwitchToFrame(By.css(Ide.IDE_IFRAME_CSS), timeout)
+    }
+
+    private getNotificationXpathLocator(notificationText: string): string {
+        return `//div[@class='theia-Notification' and contains(@id,'${notificationText}')]`;
     }
 
 }
