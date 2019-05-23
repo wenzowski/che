@@ -11,7 +11,7 @@ import { DriverHelper } from "../../utils/DriverHelper";
 import { injectable, inject } from "inversify";
 import { CLASSES } from "../../inversify.types";
 import { TestConstants } from "../../TestConstants";
-import { By } from "selenium-webdriver";
+import { By, WebElement } from "selenium-webdriver";
 import { TestWorkspaceUtil, WorkspaceStatus } from "../../utils/workspace/TestWorkspaceUtil";
 
 
@@ -125,6 +125,27 @@ export class Ide {
 
     async waitIdeFrameAndSwitchOnIt(timeout = TestConstants.TS_SELENIUM_LOAD_PAGE_TIMEOUT) {
         await this.driverHelper.waitAndSwitchToFrame(By.css(Ide.IDE_IFRAME_CSS), timeout)
+    }
+
+    async closeAllNotifications() {
+        const notificationLocator: By = By.css('.theia-Notification');
+
+        if (! await this.driverHelper.isVisible(notificationLocator)) {
+            return;
+        }
+
+        const notifications: WebElement[] = await this.driverHelper.waitAllPresence(notificationLocator);
+        const notificationsCapacity: number = notifications.length;
+
+        for (let i = 1; i <= notificationsCapacity; i++) {
+            const notificationLocator: By = By.xpath(`(//div[@class='theia-Notification']//button[text()='Close'])[${i}]`)
+
+            if (! await this.driverHelper.isVisible(notificationLocator)) {
+                continue;
+            }
+
+            await this.driverHelper.waitAndClick(notificationLocator);
+        }
     }
 
     private getNotificationXpathLocator(notificationText: string): string {

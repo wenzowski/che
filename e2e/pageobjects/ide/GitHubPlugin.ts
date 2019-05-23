@@ -56,7 +56,7 @@ export class GitHubPlugin {
     }
 
     async waitChangesPresence(changesText: string, timeout: number = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT) {
-        this.driverHelper
+        await this.driverHelper
             .getDriver()
             .wait(async () => {
                 const changes: string[] = await this.getChangesList();

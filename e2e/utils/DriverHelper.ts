@@ -171,6 +171,11 @@ export class DriverHelper {
                     continue;
                 }
 
+                if (err instanceof error.WebDriverError) {
+                    await this.wait(polling)
+                    continue;
+                }
+
                 throw err
             }
         }
@@ -338,7 +343,7 @@ export class DriverHelper {
         throw new Error(`Exceeded maximum mouse move attempts, for the '${elementLocator}' element`)
     }
 
-    getDriver(): ThenableWebDriver{
+    getDriver(): ThenableWebDriver {
         return this.driver;
     }
 

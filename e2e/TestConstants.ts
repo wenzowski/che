@@ -79,4 +79,13 @@ export const TestConstants = {
      */
     TS_SELENIUM_PLUGIN_PRECENCE_POLLING: Number(process.env.TS_SELENIUM_PLUGIN_PRECENCE_POLLING) || 2000,
 
+    /**
+     * Name of workspace created for 'Happy Path' scenario validation.
+     */
+    TS_SELENIUM_HAPPY_PATH_WORKSPACE_NAME: process.env.TS_SELENIUM_HAPPY_PATH_WORKSPACE_NAME || 'spring-petclinic',
+
+    /**
+     * Namespace of workspace created for 'Happy Path' scenario validation.
+     */
+    TS_SELENIUM_HAPPY_PATH_WORKSPACE_NAMESPACE: process.env.TS_SELENIUM_HAPPY_PATH_WORKSPACE_NAMESPACE || 'che',
 }

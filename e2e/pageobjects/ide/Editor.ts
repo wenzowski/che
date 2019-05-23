@@ -129,7 +129,7 @@ export class Editor {
                 return true;
             }
 
-            this.driverHelper.wait(polling);
+            await this.driverHelper.wait(polling);
         }, timeout);
     }
 
@@ -158,9 +158,8 @@ export class Editor {
     }
 
     async type(text: string, line: number) {
-        await this.moveCursorToLineAndChar(line, 1)
-        await this.performKeyCombination(text)
-
+        await this.moveCursorToLineAndChar(line, 1);
+        await this.performKeyCombination(text);
     }
 
 }

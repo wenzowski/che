@@ -2,6 +2,8 @@ import { injectable, inject } from "inversify";
 import { CLASSES } from "../../inversify.types";
 import { DriverHelper } from "../../utils/DriverHelper";
 import { By } from "selenium-webdriver";
+import { TestConstants } from "../../TestConstants";
+import { Ide } from "./Ide";
 
 /*********************************************************************
  * Copyright (c) 2019 Red Hat, Inc.
@@ -14,19 +16,43 @@ import { By } from "selenium-webdriver";
  **********************************************************************/
 
 @injectable()
-export class PreviewWidget{
-    constructor(@inject(CLASSES.DriverHelper) private readonly driverHelper: DriverHelper){}
+export class PreviewWidget {
+    constructor(@inject(CLASSES.DriverHelper) private readonly driverHelper: DriverHelper,
+        @inject(CLASSES.Ide) private readonly ide: Ide) { }
 
-    async waitAndSwitchToWidgetFrame(){
+    async waitAndSwitchToWidgetFrame() {
         const iframeLocator: By = By.css('.theia-mini-browser iframe');
 
         await this.driverHelper.waitAndSwitchToFrame(iframeLocator);
     }
 
-    async waitSpringAvailable(){
-        const titleLocator: By = By.xpath('//div[@class=\'container-fluid\']//h2[text()=\'Welcome\']')
+    async waitSpringAvailable(timeout: number = TestConstants.TS_SELENIUM_DEFAULT_TIMEOUT,
+        polling: number = TestConstants.TS_SELENIUM_DEFAULT_POLLING * 5) {
+        const titleLocator: By = By.xpath('//div[@class=\'container-fluid\']//h2[text()=\'Welcome\']');
 
-        await this.driverHelper.waitVisibility(titleLocator);
+        await this.waitAndSwitchToWidgetFrame();
+
+        await this.driverHelper.getDriver().wait(async () => {
+            const isApplicationTitleVisible: boolean = await this.driverHelper.isVisible(titleLocator);
+
+            if (isApplicationTitleVisible) {
+                await this.driverHelper.getDriver().switchTo().defaultContent();
+                await this.ide.waitAndSwitchToIdeFrame();
+
+                return true;
+            }
+
+            await this.driverHelper.getDriver().switchTo().defaultContent();
+            await this.ide.waitAndSwitchToIdeFrame();
+            await this.refreshPage();
+            await this.waitAndSwitchToWidgetFrame();
+            await this.driverHelper.wait(polling);
+        }, timeout);
+    }
+
+    async refreshPage() {
+        const refreshButtonLocator: By = By.css('.theia-mini-browser .theia-mini-browser-refresh');
+        await this.driverHelper.waitAndClick(refreshButtonLocator);
     }
 
 }
