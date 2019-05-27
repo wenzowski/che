@@ -47,12 +47,14 @@ suite("Ide checks", async () => {
         console.log("workspace URL =================>>>>>>  ", workspaceUrl);
 
         const requestWorkspaceInfURL: string = `${TestConstants.TS_SELENIUM_BASE_URL}/api/workspace/che:spring-petclinic?includeInternalServers=false`;
-        const rest: rm.RestClient = new rm.RestClient('rest-samples')
+        const rest: rm.RestClient = new rm.RestClient('rest-samples');
+        console.log("request URL ===>>>>>>   ", requestWorkspaceInfURL);
         
-        const response: rm.IRestResponse<any> = await rest.get(requestWorkspaceInfURL)
+        const response: rm.IRestResponse<any> = await rest.get(requestWorkspaceInfURL);
 
+        console.log("=============\nrequest status\n================\n", response.statusCode, "\n=========================\n");
         console.log("=============\nworkspace inf\n================\n", response.result, "\n=========================\n");
-        
+
         
         await driverHelper.navigateTo(workspaceUrl);
         await ide.waitWorkspaceAndIde("che", "spring-petclinic");
