@@ -20,6 +20,8 @@ import { Editor } from "../pageobjects/ide/Editor";
 import { PreviewWidget } from "../pageobjects/ide/PreviewWidget";
 import { GitHubPlugin } from "../pageobjects/ide/GitHubPlugin";
 import { TestConstants } from "../TestConstants";
+import * as rm from 'typed-rest-client/RestClient'
+
 const driverHelper: DriverHelper = e2eContainer.get(CLASSES.DriverHelper);
 const ide: Ide = e2eContainer.get(CLASSES.Ide);
 const projectTree: ProjectTree = e2eContainer.get(CLASSES.ProjectTree);
@@ -38,9 +40,20 @@ const pathToYamlFolder: string = 'spring-petclinic';
 const yamlFileName: string = 'devfile.yaml';
 const expectedGithubChanges: string = '_remote.repositories %3F/.m2/repository/antlr/antlr/2.7.7\n' + 'U';
 
+
+
 suite("Ide checks", async () => {
     test("Build application", async () => {
         console.log("workspace URL =================>>>>>>  ", workspaceUrl);
+
+        const requestWorkspaceInfURL: string = `${TestConstants.TS_SELENIUM_BASE_URL}/api/workspace/che:spring-petclinic?includeInternalServers=false`;
+        const rest: rm.RestClient = new rm.RestClient('rest-samples')
+        
+        const response: rm.IRestResponse<any> = await rest.get(requestWorkspaceInfURL)
+
+        console.log("=============\nworkspace inf\n================\n", response.result, "\n=========================\n");
+        
+        
         await driverHelper.navigateTo(workspaceUrl);
         await ide.waitWorkspaceAndIde("che", "spring-petclinic");
         await projectTree.openProjectTreeContainer();
