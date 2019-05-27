@@ -40,6 +40,7 @@ const expectedGithubChanges: string = '_remote.repositories %3F/.m2/repository/a
 
 suite("Ide checks", async () => {
     test("Build application", async () => {
+        console.log("workspace URL =================>>>>>>  ", workspaceUrl);
         await driverHelper.navigateTo(workspaceUrl);
         await ide.waitWorkspaceAndIde("che", "spring-petclinic");
         await projectTree.openProjectTreeContainer();
