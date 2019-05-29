@@ -376,7 +376,7 @@ wait_for_che() {
 createNewProject() {
 
   WAIT_FOR_PROJECT_TO_DELETE=true
-  CHE_REMOVE_PROJECT=true
+  CHE_REMOVE_PROJECT=false
   DELETE_OPENSHIFT_PROJECT_MESSAGE=$(printInfo "Removing namespace ${CHE_OPENSHIFT_PROJECT}")
   if ${OC_BINARY} get project "${CHE_OPENSHIFT_PROJECT}" &> /dev/null; then
     printWarning "Namespace \"${CHE_OPENSHIFT_PROJECT}\" exists."
